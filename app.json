@@ -49,6 +49,12 @@
           "iosClientId": "471752240657-up7ek18rni69olkqs1qia41687ungk7v.apps.googleusercontent.com",
           "iosUrlScheme": "com.googleusercontent.apps.471752240657-up7ek18rni69olkqs1qia41687ungk7v"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to let you ..."
+        }
       ]
     ],
     "experiments": {

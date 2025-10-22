@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     fotoPerfil: {
         width: 120,
         height: 120,
-        borderRadius: 60,
+        borderRadius: 10,
         borderWidth: 3,
         borderColor: '#2bff60',
     },
