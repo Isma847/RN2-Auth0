@@ -1,98 +1,135 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { GoogleSignin, GoogleSigninButton, isSuccessResponse } from '@react-native-google-signin/google-signin';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const router = useRouter();
+    const API_URL = 'http://192.168.100.227:3000/google-signin';
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+    useEffect(() => {
+        GoogleSignin.configure({
+            iosClientId: "471752240657-up7ek18rni69olkqs1qia41687ungk7v.apps.googleusercontent.com",
+            webClientId: "471752240657-1597ckkqtbaqje2rgir5qtomikphn5am.apps.googleusercontent.com",
+            profileImageSize: 150,
+        });
+    });
+
+    const handleGoogleSignIn = async () => {
+        try{
+            setIsSubmitting(true);
+            await GoogleSignin.hasPlayServices();
+            const response = await GoogleSignin.signIn();
+            if(isSuccessResponse(response)){
+                const{idToken, user} = response.data;
+                const {name, email, photo} = user;
+                console.log("El usuario "+ name+" inició sesión.")
+                const resultado = crearUsuarioBD(user)
+
+                if((await resultado).success){
+                    router.replace({
+                    pathname: '/home', 
+                    params: { email: user.email }
+                });
+                }
+                // Mandar a la pagina de usuario con la información (name, email, photo).
+            }else{
+                // Mensaje de error si se cancelo el inicio de sesión.
+            }
+            setIsSubmitting(false);
+        }catch (error) {
+            // Hubo un error en el inicio de sesión.
+            /*
+            if(isErrorWithCode(error)){
+                switch (error.code){
+                case statusCode.IN_PROGRESS:
+                    ...
+                    break;
+                case statusCode.PLAY_SERVICES_NOT_AVAILABLE:
+                    ...
+                    break;
+                default:
+                    ...
+                }
+            }else{
+                //Mensaje de error externo a google.
+                }
+            */
+            setIsSubmitting(false);
+        }
+    }
+
+    const crearUsuarioBD = async (user: {name: any; email: any; photo: any}) =>{
+        const datosParaBD = {
+            nombre: user.name,
+            email: user.email,
+            foto: user.photo
+        };
+        try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+              body: JSON.stringify(datosParaBD),
+            });
+
+          const resultado = await response.text();
+
+          if (response.ok) {
+            console.log('Éxito', resultado);
+            return { success: true, data: resultado };
+          } else {
+            console.log('Error al iniciar sesión', resultado);
+            return { success: false, data: resultado };
+          }
+          } catch (error) {
+            console.error('Error de conexión:', error);
+            return { success: false, data: error };
+        }
+    };
+
+    return (
+        <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+            <Text style={styles.titulo}>Inicio de Sesión</Text>
+            <View style={{marginHorizontal: 35}}>
+            <GoogleSigninButton
+                size={GoogleSigninButton.Size.Wide}
+                color={GoogleSigninButton.Color.Dark}
+                onPress={() => {handleGoogleSignIn()}}
+            disabled={isSubmitting}
+            />
+            </View>
+        </ScrollView>
+    );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+    container: {
+        backgroundColor: '#292929',
+    },
+    contentContainer: {
+        flexGrow: 1,
+        justifyContent: 'center'
+    },
+    titulo: {
+        fontSize: 35,
+        textAlign:"center",
+        marginTop: 20,
+        fontWeight: '700',
+        color: '#2bff60',
+        padding: 10
+    },
+    bienvenidoText: {
+        color: '#2bff60', 
+        fontSize: 20, 
+        marginBottom: 10, 
+        fontWeight: 'bold'
+    },
+    infoText: {
+        color: '#e0e0e0', 
+        fontSize: 16, 
+        marginBottom: 5
+    }
 });
