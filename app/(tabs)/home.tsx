@@ -29,50 +29,42 @@ export default function Home() {
 
     const solicitarPermisos = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-            alert('Se necesitan permisos para acceder a la galería');
-        }
     };
 
-    const seleccionarFoto = async () => {
-        try {
-            const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                aspect: [1, 1],
-                quality: 0.5,
-            });
+   const seleccionarFoto = async () => {
+    try {
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: 'images' as any, // Solución temporal
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.5,
+        });
 
-            if (!result.canceled) {
-                setEditedData({...editedData, foto: result.assets[0].uri});
-            }
-        } catch (error) {
-            console.error('Error al seleccionar foto:', error);
-            alert('Error al seleccionar la foto');
+        if (!result.canceled) {
+            setEditedData({...editedData, foto: result.assets[0].uri});
         }
-    };
+    } catch (error) {
+        console.error('Error al seleccionar foto:', error);
+    }
+};
 
-    const tomarFoto = async () => {
-        try {
-            const { status } = await ImagePicker.requestCameraPermissionsAsync();
-            if (status !== 'granted') {
-                alert('Se necesitan permisos para usar la cámara');
-                return;
-            }
+const tomarFoto = async () => {
+    try {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
 
-            const result = await ImagePicker.launchCameraAsync({
-                allowsEditing: true,
-                aspect: [1, 1],
-                quality: 0.5,
-            });
+        const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: 'images' as any, // Solución temporal
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.5,
+        });
 
-            if (!result.canceled) {
-                setEditedData({...editedData, foto: result.assets[0].uri});
-            }
-        } catch (error) {
-            console.error('Error al tomar foto:', error);
-            alert('Error al tomar la foto');
+        if (!result.canceled) {
+            setEditedData({...editedData, foto: result.assets[0].uri});
         }
+    } catch (error) {
+        console.error('Error al tomar la foto:', error);
+    }
     };
 
     const obtenerUsuario = async () => {
@@ -111,14 +103,11 @@ export default function Home() {
                 // Volver a obtener el usuario actualizado de la BD
                 await obtenerUsuario();
                 setIsEditing(false);
-                alert('Usuario actualizado correctamente');
             } else {
                 console.log('Error al actualizar:', resultado);
-                alert('Error al actualizar usuario');
             }
         } catch (error) {
             console.error('Error de conexión:', error);
-            alert('Error de conexión');
         }
     };
 
