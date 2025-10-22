@@ -1,12 +1,12 @@
 import { GoogleSignin, GoogleSigninButton, isSuccessResponse } from '@react-native-google-signin/google-signin';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function HomeScreen() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
-    const API_URL = 'http://192.168.100.227:3000/google-signin';
+    const API_URL = 'http://10.0.9.211:3000/google-signin';
 
     useEffect(() => {
         GoogleSignin.configure({

@@ -1,17 +1,21 @@
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 interface Usuario {
   email: string;
-  name: string;
-  photo: string;
+  nombre: string;
+  telefono: string;
+  foto: string;
+  direccion: string;
+  documento: string;
 }
 
 export default function Home() {
     const router = useRouter();
     const { email } = useLocalSearchParams();
-    const API_URL = 'http://192.168.100.227:3000/usuario';
+    const API_URL = 'http://10.0.9.211:3000/usuario';
     
     const [usuario, setUsuario] = useState<Usuario | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -20,7 +24,56 @@ export default function Home() {
 
     useEffect(() => {
         obtenerUsuario();
+        solicitarPermisos();
     }, []);
+
+    const solicitarPermisos = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            alert('Se necesitan permisos para acceder a la galería');
+        }
+    };
+
+    const seleccionarFoto = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.5,
+            });
+
+            if (!result.canceled) {
+                setEditedData({...editedData, foto: result.assets[0].uri});
+            }
+        } catch (error) {
+            console.error('Error al seleccionar foto:', error);
+            alert('Error al seleccionar la foto');
+        }
+    };
+
+    const tomarFoto = async () => {
+        try {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
+                alert('Se necesitan permisos para usar la cámara');
+                return;
+            }
+
+            const result = await ImagePicker.launchCameraAsync({
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.5,
+            });
+
+            if (!result.canceled) {
+                setEditedData({...editedData, foto: result.assets[0].uri});
+            }
+        } catch (error) {
+            console.error('Error al tomar foto:', error);
+            alert('Error al tomar la foto');
+        }
+    };
 
     const obtenerUsuario = async () => {
         try {
@@ -55,8 +108,8 @@ export default function Home() {
             });
             const resultado = await response.json();
             if (response.ok) {
-                setUsuario(resultado); 
-                setEditedData(resultado);
+                // Volver a obtener el usuario actualizado de la BD
+                await obtenerUsuario();
                 setIsEditing(false);
                 alert('Usuario actualizado correctamente');
             } else {
@@ -90,6 +143,37 @@ export default function Home() {
             <Text style={styles.titulo}>Perfil de Usuario</Text>
             
             <View style={styles.card}>
+                {/* Foto de perfil */}
+                <View style={styles.fotoContainer}>
+                    {(isEditing ? editedData.foto : usuario.foto) ? (
+                        <Image 
+                            source={{ uri: isEditing ? editedData.foto : usuario.foto }}
+                            style={styles.fotoPerfil}
+                        />
+                    ) : (
+                        <View style={styles.fotoPlaceholder}>
+                            <Text style={styles.fotoPlaceholderText}>Sin foto</Text>
+                        </View>
+                    )}
+                </View>
+
+                {isEditing && (
+                    <View style={styles.fotoButtonsContainer}>
+                        <TouchableOpacity 
+                            style={styles.fotoBoton}
+                            onPress={seleccionarFoto}
+                        >
+                            <Text style={styles.fotoBotonTexto}>Galería</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            style={styles.fotoBoton}
+                            onPress={tomarFoto}
+                        >
+                            <Text style={styles.fotoBotonTexto}>Cámara</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
                 <Text style={styles.label}>Email:</Text>
                 <Text style={styles.emailText}>{usuario.email}</Text>
 
@@ -97,26 +181,54 @@ export default function Home() {
                 {isEditing ? (
                     <TextInput
                         style={styles.input}
-                        value={editedData.name}
-                        onChangeText={(text) => setEditedData({...editedData, name: text})}
+                        value={editedData.nombre}
+                        onChangeText={(text) => setEditedData({...editedData, nombre: text})}
                         placeholder="Nombre"
                         placeholderTextColor="#666"
                     />
                 ) : (
-                    <Text style={styles.infoText}>{usuario.name}</Text>
+                    <Text style={styles.infoText}>{usuario.nombre || 'No especificado'}</Text>
                 )}
 
-                <Text style={styles.label}>Foto:</Text>
+                <Text style={styles.label}>Teléfono:</Text>
                 {isEditing ? (
                     <TextInput
                         style={styles.input}
-                        value={editedData.photo}
-                        onChangeText={(text) => setEditedData({...editedData, photo: text})}
-                        placeholder="URL de foto"
+                        value={editedData.telefono}
+                        onChangeText={(text) => setEditedData({...editedData, telefono: text})}
+                        placeholder="Teléfono"
+                        placeholderTextColor="#666"
+                        keyboardType="phone-pad"
+                    />
+                ) : (
+                    <Text style={styles.infoText}>{usuario.telefono || 'No especificado'}</Text>
+                )}
+
+                <Text style={styles.label}>Dirección:</Text>
+                {isEditing ? (
+                    <TextInput
+                        style={styles.input}
+                        value={editedData.direccion}
+                        onChangeText={(text) => setEditedData({...editedData, direccion: text})}
+                        placeholder="Dirección"
                         placeholderTextColor="#666"
                     />
                 ) : (
-                    <Text style={styles.infoText}>{usuario.photo}</Text>
+                    <Text style={styles.infoText}>{usuario.direccion || 'No especificado'}</Text>
+                )}
+
+                <Text style={styles.label}>Documento:</Text>
+                {isEditing ? (
+                    <TextInput
+                        style={styles.input}
+                        value={editedData.documento}
+                        onChangeText={(text) => setEditedData({...editedData, documento: text})}
+                        placeholder="Documento"
+                        placeholderTextColor="#666"
+                        keyboardType="numeric"
+                    />
+                ) : (
+                    <Text style={styles.infoText}>{usuario.documento || 'No especificado'}</Text>
                 )}
             </View>
 
@@ -176,6 +288,50 @@ const styles = StyleSheet.create({
         borderRadius: 15,
         padding: 20,
         marginBottom: 20,
+    },
+    fotoContainer: {
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    fotoPerfil: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        borderWidth: 3,
+        borderColor: '#2bff60',
+    },
+    fotoPlaceholder: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: '#333',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 3,
+        borderColor: '#2bff60',
+    },
+    fotoPlaceholderText: {
+        color: '#666',
+        fontSize: 14,
+    },
+    fotoButtonsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 10,
+        marginBottom: 20,
+    },
+    fotoBoton: {
+        backgroundColor: '#333',
+        paddingVertical: 8,
+        paddingHorizontal: 20,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#2bff60',
+    },
+    fotoBotonTexto: {
+        color: '#2bff60',
+        fontSize: 14,
+        fontWeight: 'bold',
     },
     label: {
         color: '#2bff60',
